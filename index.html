@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Выбор имени ребёнку — общий список</title>
+<title>Выбор имени ребёнку</title>
 <style>
   body { font-family: sans-serif; background: #f5f5f5; margin: 20px; }
   h1 { text-align: center; }
@@ -40,13 +40,13 @@
 
 <div class="who">
   Кто вы?
-  <button data-user="Мама" onclick="setUser('Мама')">👩 Мама</button>
-  <button data-user="Папа" onclick="setUser('Папа')">👨 Папа</button>
+  <button id="btn-mom" type="button">👩 Мама</button>
+  <button id="btn-dad" type="button">👨 Папа</button>
 </div>
 
 <div class="add-form">
-  <input id="newName" placeholder="Введите имя..." />
-  <button onclick="addName()">Добавить</button>
+  <input id="newName" placeholder="Введите имя..." type="text" />
+  <button id="btn-add" type="button">Добавить</button>
 </div>
 
 <div class="board">
@@ -62,7 +62,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getDatabase, ref, onValue, set, remove, update }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// ВАШИ КЛЮЧИ (уже вставлены)
 const firebaseConfig = {
   apiKey: "AIzaSyCGn-5wOuOPHVlFLpYUwszHgLIFFxN6w-s",
   authDomain: "baby-names-1ec1d.firebaseapp.com",
@@ -80,17 +79,33 @@ const namesRef = ref(db, "names");
 let currentUser = localStorage.getItem("who") || null;
 let names = {}; 
 
-function setUser(u) {
+// Функции для кнопок
+window.setUser = function(u) {
   currentUser = u;
   localStorage.setItem("who", u);
   document.querySelectorAll('.who button').forEach(b => {
-    b.classList.toggle('active', b.dataset.user === u);
+    b.classList.toggle('active', b.id === 'btn-mom' && u === 'Мама' || b.id === 'btn-dad' && u === 'Папа');
   });
   render();
 }
 
-document.querySelectorAll('.who button').forEach(b => {
-  b.onclick = () => setUser(b.dataset.user);
+window.addName = function() {
+  if (!currentUser) { alert('Сначала выберите, кто вы (Мама/Папа)'); return; }
+  const input = document.getElementById('newName');
+  const val = input.value.trim();
+  if (!val) return;
+  const exists = Object.values(names).some(n => n.text.toLowerCase() === val.toLowerCase());
+  if (exists) { alert('Такое имя уже есть'); return; }
+  const id = Date.now().toString();
+  set(namesRef.child(id), { text: val, status: 'maybe', by: currentUser });
+  input.value = '';
+}
+
+document.getElementById('btn-mom').addEventListener('click', () => setUser('Мама'));
+document.getElementById('btn-dad').addEventListener('click', () => setUser('Папа'));
+document.getElementById('btn-add').addEventListener('click', addName);
+document.getElementById('newName').addEventListener('keypress', e => {
+  if (e.key === 'Enter') addName();
 });
 
 if (currentUser) setUser(currentUser);
@@ -141,22 +156,6 @@ document.querySelectorAll('.column').forEach(col => {
       update(namesRef.child(id), { status: col.dataset.status, by: currentUser });
     }
   });
-});
-
-function addName() {
-  if (!currentUser) { alert('Сначала выберите, кто вы (Мама/Папа)'); return; }
-  const input = document.getElementById('newName');
-  const val = input.value.trim();
-  if (!val) return;
-  const exists = Object.values(names).some(n => n.text.toLowerCase() === val.toLowerCase());
-  if (exists) { alert('Такое имя уже есть'); return; }
-  const id = Date.now().toString();
-  set(namesRef.child(id), { text: val, status: 'maybe', by: currentUser });
-  input.value = '';
-}
-
-document.getElementById('newName').addEventListener('keypress', e => {
-  if (e.key === 'Enter') addName();
 });
 </script>
 </body>
