@@ -31,11 +31,8 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     transition: opacity 0.2s;
   }
-  /* Цвет, если добавила Мама (Зеленоватый) */
   .item.bg-mom { background: #dcedc8; border-left: 4px solid #8bc34a; }
-  /* Цвет, если добавил Папа (Голубоватый) */
   .item.bg-dad { background: #d0e8f8; border-left: 4px solid #42a5f5; }
-  /* Цвет по умолчанию (на всякий случай) */
   .item.bg-other { background: #e3f2fd; border-left: 4px solid #90caf9; }
 
   .item .del { color: #999; cursor: pointer; font-weight: bold; margin-left: 6px; font-size: 18px; padding: 0 4px;}
@@ -121,7 +118,6 @@
     if (exists) { alert('Такое имя уже есть'); return; }
     var id = Date.now().toString();
     
-    // Сохраняем в базу, добавляя пометку, КТО первый добавил (by = currentUser)
     namesRef.child(id).set({ text: val, status: 'maybe', by: currentUser });
     input.value = '';
   };
@@ -150,7 +146,6 @@
       columnNames.forEach(function(n) {
         var div = document.createElement('div');
         
-        // --- ВЫБИРАЕМ ЦВЕТ В ЗАВИСИМОСТИ ОТ ТОГО, КТО ДОБАВИЛ ---
         var colorClass = 'bg-other';
         if (n.by === 'Мама') colorClass = 'bg-mom';
         if (n.by === 'Папа') colorClass = 'bg-dad';
@@ -158,7 +153,9 @@
         div.className = 'item ' + colorClass;
         div.dataset.id = n.id;
         
-        // Убрали текст (Мама/Папа), оставили только имя
+        // Восстановили перетаскивание для компьютера!
+        div.draggable = true; 
+        
         div.innerHTML = '<div>' + n.text + '</div>' +
                         '<span class="del" title="Удалить">×</span>';
         
@@ -166,6 +163,11 @@
           e.stopPropagation(); 
           namesRef.child(n.id).remove(); 
         };
+        
+        // Восстановили логику перетаскивания для ПК!
+        div.addEventListener('dragstart', function(e) { 
+          e.dataTransfer.setData('text/plain', n.id); 
+        });
         
         setupTouchEvents(div);
         col.appendChild(div);
@@ -208,7 +210,6 @@
       
       if (col && names[this.dataset.id]) {
         var newStatus = col.dataset.status;
-        // При перемещении мы НЕ МЕНЯЕМ автора (by остается тем, кто добавил изначально)
         namesRef.child(this.dataset.id).update({ status: newStatus });
       }
       
@@ -227,7 +228,6 @@
       if (!currentUser) { alert('Сначала выберите, кто вы'); return; }
       var id = e.dataTransfer.getData('text/plain');
       if (id && names[id]) {
-        // При перемещении мы НЕ МЕНЯЕМ автора (by остается прежним)
         namesRef.child(id).update({ status: col.dataset.status });
       }
     });
