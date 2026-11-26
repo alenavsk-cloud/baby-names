@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Выбор имени ребёнку — общий список</title>
+<style>
+  body { font-family: sans-serif; background: #f5f5f5; margin: 20px; }
+  h1 { text-align: center; }
+  .who { text-align: center; margin-bottom: 10px; }
+  .who button { padding: 8px 16px; margin: 0 4px; border-radius: 8px; border: 1px solid #ccc; cursor: pointer; background: white; }
+  .who button.active { background: #1976d2; color: white; border-color: #1976d2; }
+  .board { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .column {
+    background: white; border-radius: 12px; padding: 12px;
+    width: 280px; min-height: 400px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .column h2 { text-align: center; margin-top: 0; }
+  .col-yes h2 { color: #2e7d32; }
+  .col-no h2 { color: #c62828; }
+  .col-maybe h2 { color: #f9a825; }
+  .item {
+    background: #e3f2fd; padding: 10px 14px; margin: 8px 0;
+    border-radius: 8px; cursor: grab; user-select: none;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .item:active { cursor: grabbing; }
+  .item .meta { font-size: 11px; color: #666; margin-left: 6px; }
+  .item .del { color: #999; cursor: pointer; font-weight: bold; margin-left: 6px; }
+  .item .del:hover { color: #c62828; }
+  .add-form { display: flex; gap: 8px; margin: 20px auto; max-width: 500px; }
+  .add-form input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+  .add-form button { padding: 10px 20px; border-radius: 8px; border: none; background: #1976d2; color: white; cursor: pointer; }
+  .drag-over { background: #fffde7; }
+  .status { text-align: center; font-size: 12px; color: #888; margin-top: 10px; }
+</style>
+</head>
+<body>
+<h1>Выбор имени ребёнку</h1>
+
+<div class="who">
+  Кто вы?
+  <button data-user="Мама" onclick="setUser('Мама')">👩 Мама</button>
+  <button data-user="Папа" onclick="setUser('Папа')">👨 Папа</button>
+</div>
+
+<div class="add-form">
+  <input id="newName" placeholder="Введите имя..." />
+  <button onclick="addName()">Добавить</button>
+</div>
+
+<div class="board">
+  <div class="column col-yes" data-status="yes"><h2>✅ Да</h2></div>
+  <div class="column col-maybe" data-status="maybe"><h2>🤔 Не знаю</h2></div>
+  <div class="column col-no" data-status="no"><h2>❌ Нет</h2></div>
+</div>
+
+<div class="status" id="status">Подключение...</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, remove, update }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ВАШИ КЛЮЧИ (уже вставлены)
+const firebaseConfig = {
+  apiKey: "AIzaSyCGn-5wOuOPHVlFLpYUwszHgLIFFxN6w-s",
+  authDomain: "baby-names-1ec1d.firebaseapp.com",
+  databaseURL: "https://baby-names-1ec1d-default-rtdb.firebaseio.com",
+  projectId: "baby-names-1ec1d",
+  storageBucket: "baby-names-1ec1d.firebasestorage.app",
+  messagingSenderId: "438452457347",
+  appId: "1:438452457347:web:f5807d2b910e297483f0b6"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const namesRef = ref(db, "names");
+
+let currentUser = localStorage.getItem("who") || null;
+let names = {}; 
+
+function setUser(u) {
+  currentUser = u;
+  localStorage.setItem("who", u);
+  document.querySelectorAll('.who button').forEach(b => {
+    b.classList.toggle('active', b.dataset.user === u);
+  });
+  render();
+}
+
+document.querySelectorAll('.who button').forEach(b => {
+  b.onclick = () => setUser(b.dataset.user);
+});
+
+if (currentUser) setUser(currentUser);
+
+onValue(namesRef, snapshot => {
+  names = snapshot.val() || {};
+  document.getElementById('status').textContent = '🟢 Подключено — изменения видны обоим сразу';
+  render();
+}, (error) => {
+  document.getElementById('status').textContent = '🔴 Ошибка подключения к базе.';
+  console.error(error);
+});
+
+function render() {
+  document.querySelectorAll('.column').forEach(col => {
+    const status = col.dataset.status;
+    col.querySelectorAll('.item').forEach(el => el.remove());
+    Object.entries(names)
+      .filter(([id, n]) => n.status === status)
+      .forEach(([id, n]) => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.draggable = true;
+        div.dataset.id = id;
+        div.innerHTML = `<span>${n.text}<span class="meta">(${n.by || '—'})</span></span>
+                         <span class="del" title="Удалить">×</span>`;
+        div.querySelector('.del').onclick = () => remove(namesRef.child(id));
+        div.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', id);
+        });
+        col.appendChild(div);
+      });
+  });
+}
+
+document.querySelectorAll('.column').forEach(col => {
+  col.addEventListener('dragover', e => {
+    e.preventDefault();
+    col.classList.add('drag-over');
+  });
+  col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+  col.addEventListener('drop', e => {
+    e.preventDefault();
+    col.classList.remove('drag-over');
+    if (!currentUser) { alert('Сначала выберите, кто вы (Мама/Папа)'); return; }
+    const id = e.dataTransfer.getData('text/plain');
+    if (id && names[id]) {
+      update(namesRef.child(id), { status: col.dataset.status, by: currentUser });
+    }
+  });
+});
+
+function addName() {
+  if (!currentUser) { alert('Сначала выберите, кто вы (Мама/Папа)'); return; }
+  const input = document.getElementById('newName');
+  const val = input.value.trim();
+  if (!val) return;
+  const exists = Object.values(names).some(n => n.text.toLowerCase() === val.toLowerCase());
+  if (exists) { alert('Такое имя уже есть'); return; }
+  const id = Date.now().toString();
+  set(namesRef.child(id), { text: val, status: 'maybe', by: currentUser });
+  input.value = '';
+}
+
+document.getElementById('newName').addEventListener('keypress', e => {
+  if (e.key === 'Enter') addName();
+});
+</script>
+</body>
+</html>
