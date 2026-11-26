@@ -21,15 +21,26 @@
   .col-yes h2 { color: #2e7d32; }
   .col-no h2 { color: #c62828; }
   .col-maybe h2 { color: #f9a825; }
+  
+  /* --- НОВЫЕ ЦВЕТА ДЛЯ ИМЕН --- */
   .item {
-    background: #e3f2fd; padding: 10px; margin: 8px 0;
+    padding: 10px; margin: 8px 0;
     border-radius: 8px; cursor: grab; 
     display: flex; justify-content: space-between; align-items: center;
-    font-size: 14px;
+    font-size: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: opacity 0.2s;
   }
-  .item .meta { font-size: 10px; color: #666; display: block; margin-top: 4px; }
+  /* Цвет, если добавила Мама (Зеленоватый) */
+  .item.bg-mom { background: #dcedc8; border-left: 4px solid #8bc34a; }
+  /* Цвет, если добавил Папа (Голубоватый) */
+  .item.bg-dad { background: #d0e8f8; border-left: 4px solid #42a5f5; }
+  /* Цвет по умолчанию (на всякий случай) */
+  .item.bg-other { background: #e3f2fd; border-left: 4px solid #90caf9; }
+
   .item .del { color: #999; cursor: pointer; font-weight: bold; margin-left: 6px; font-size: 18px; padding: 0 4px;}
   .item .del:hover { color: #c62828; }
+  
   .add-form { display: flex; gap: 8px; margin: 20px auto; max-width: 500px; }
   .add-form input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
   .add-form button { padding: 10px 20px; border-radius: 8px; border: none; background: #1976d2; color: white; cursor: pointer; font-size: 16px; }
@@ -109,6 +120,8 @@
     var exists = Object.values(names).some(function(n) { return n.text.toLowerCase() === val.toLowerCase(); });
     if (exists) { alert('Такое имя уже есть'); return; }
     var id = Date.now().toString();
+    
+    // Сохраняем в базу, добавляя пометку, КТО первый добавил (by = currentUser)
     namesRef.child(id).set({ text: val, status: 'maybe', by: currentUser });
     input.value = '';
   };
@@ -122,26 +135,31 @@
       var status = col.dataset.status;
       col.querySelectorAll('.item').forEach(function(el) { el.remove(); });
       
-      // 1. Получаем все имена для этой колонки
       var columnNames = Object.keys(names)
         .map(function(id) { 
           var n = names[id]; 
-          n.id = id; // сохраняем ID внутрь объекта для удобства
+          n.id = id;
           return n; 
         })
         .filter(function(n) { return n.status === status; });
 
-      // 2. СОРТИРОВКА ПО АЛФАВИТУ
       columnNames.sort(function(a, b) {
         return a.text.localeCompare(b.text, 'ru', { sensitivity: 'base' });
       });
 
-      // 3. Отрисовка
       columnNames.forEach(function(n) {
         var div = document.createElement('div');
-        div.className = 'item';
+        
+        // --- ВЫБИРАЕМ ЦВЕТ В ЗАВИСИМОСТИ ОТ ТОГО, КТО ДОБАВИЛ ---
+        var colorClass = 'bg-other';
+        if (n.by === 'Мама') colorClass = 'bg-mom';
+        if (n.by === 'Папа') colorClass = 'bg-dad';
+        
+        div.className = 'item ' + colorClass;
         div.dataset.id = n.id;
-        div.innerHTML = '<div>' + n.text + '<span class="meta">(' + (n.by || '—') + ')</span></div>' +
+        
+        // Убрали текст (Мама/Папа), оставили только имя
+        div.innerHTML = '<div>' + n.text + '</div>' +
                         '<span class="del" title="Удалить">×</span>';
         
         div.querySelector('.del').onclick = function(e) { 
@@ -155,6 +173,7 @@
     });
   }
 
+  // --- ТЕЛЕФОНЫ ---
   var touchItem = null;
   var touchX = 0, touchY = 0;
 
@@ -189,7 +208,8 @@
       
       if (col && names[this.dataset.id]) {
         var newStatus = col.dataset.status;
-        namesRef.child(this.dataset.id).update({ status: newStatus, by: currentUser });
+        // При перемещении мы НЕ МЕНЯЕМ автора (by остается тем, кто добавил изначально)
+        namesRef.child(this.dataset.id).update({ status: newStatus });
       }
       
       document.querySelectorAll('.column').forEach(function(c) { c.classList.remove('drag-over'); });
@@ -197,6 +217,7 @@
     });
   }
 
+  // --- КОМПЬЮТЕРЫ ---
   document.querySelectorAll('.column').forEach(function(col) {
     col.addEventListener('dragover', function(e) { e.preventDefault(); col.classList.add('drag-over'); });
     col.addEventListener('dragleave', function() { col.classList.remove('drag-over'); });
@@ -206,7 +227,8 @@
       if (!currentUser) { alert('Сначала выберите, кто вы'); return; }
       var id = e.dataTransfer.getData('text/plain');
       if (id && names[id]) {
-        namesRef.child(id).update({ status: col.dataset.status, by: currentUser });
+        // При перемещении мы НЕ МЕНЯЕМ автора (by остается прежним)
+        namesRef.child(id).update({ status: col.dataset.status });
       }
     });
   });
