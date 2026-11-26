@@ -11,21 +11,20 @@
   .who button { padding: 10px 16px; margin: 0 4px; border-radius: 8px; border: 1px solid #ccc; cursor: pointer; background: white; font-size: 16px; }
   .who button.active { background: #1976d2; color: white; border-color: #1976d2; }
   
-  /* --- КОНТЕЙНЕР С КОЛОНКАМИ --- */
   .board { 
     display: flex; 
     gap: 15px; 
-    justify-content: flex-start; /* На телефоне колонки прижаты влево, чтобы можно было скроллить */
+    justify-content: flex-start;
     overflow-x: auto; 
     padding-bottom: 20px;
-    -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
+    -webkit-overflow-scrolling: touch;
   }
   
   .column {
     background: white; 
     border-radius: 12px; 
     padding: 12px;
-    flex: 0 0 280px; /* Запрещаем колонкам сжиматься, фиксируем ширину 280px */
+    flex: 0 0 280px; 
     min-height: 400px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     display: flex; 
@@ -39,25 +38,30 @@
   
   /* --- ИМЕНА --- */
   .item {
-    padding: 12px; 
+    /* Увеличили отступ слева, чтобы буква не прилипала к полоске */
+    padding: 12px 12px 12px 16px; 
     margin: 8px 0;
     border-radius: 8px; 
     cursor: grab; 
     display: flex; 
     justify-content: space-between; 
     align-items: center;
-    font-size: 17px; /* Чуть увеличили шрифт */
+    font-size: 17px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     transition: opacity 0.2s;
+    word-break: break-word; /* Чтобы длинные имена переносились, а не вылезали */
   }
   .item.bg-mom { background: #dcedc8; border-left: 5px solid #8bc34a; }
   .item.bg-dad { background: #d0e8f8; border-left: 5px solid #42a5f5; }
   .item.bg-other { background: #e3f2fd; border-left: 5px solid #90caf9; }
 
-  .item .del { color: #999; cursor: pointer; font-weight: bold; margin-left: 6px; font-size: 22px; padding: 0 6px;}
+  .item .del { 
+    color: #999; cursor: pointer; font-weight: bold; 
+    margin-left: 10px; /* Отодвинули крестик от текста */
+    font-size: 22px; padding: 0 6px;
+  }
   .item .del:hover { color: #c62828; }
   
-  /* --- ФОРМА ДОБАВЛЕНИЯ --- */
   .add-form { display: flex; gap: 8px; margin: 20px auto; max-width: 500px; }
   .add-form input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
   .add-form button { padding: 12px 20px; border-radius: 8px; border: none; background: #1976d2; color: white; cursor: pointer; font-size: 16px; }
@@ -65,16 +69,9 @@
   .drag-over { background: #fffde7; }
   .status { text-align: center; font-size: 12px; color: #888; margin-top: 10px; }
 
-  /* --- ДЛЯ КОМПЬЮТЕРОВ (экраны больше 768px) --- */
   @media (min-width: 768px) {
-    .board { 
-      justify-content: center; /* На ПК центрируем */
-      flex-wrap: wrap; 
-    }
-    .column {
-      flex: 1; /* На ПК колонки растягиваются равномерно */
-      max-width: 300px;
-    }
+    .board { justify-content: center; flex-wrap: wrap; }
+    .column { flex: 1; max-width: 300px; }
   }
 </style>
 </head>
